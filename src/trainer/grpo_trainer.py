@@ -32,8 +32,7 @@ from transformers import (
     GenerationConfig,
     PreTrainedModel,
     PreTrainedTokenizerBase,
-    Qwen2VLForConditionalGeneration,
-    Qwen2_5_VLForConditionalGeneration,
+    Qwen3VLForConditionalGeneration,
     Trainer,
     TrainerCallback,
     is_wandb_available,
@@ -113,7 +112,7 @@ class RepeatRandomSampler(Sampler):
         return self.num_samples * self.mini_repeat_count * self.repeat_count
 
 
-class Qwen2VLGRPOTrainer(Trainer):
+class Qwen3VLGRPOTrainer(Trainer):
     """
     Trainer for the Group Relative Policy Optimization (GRPO) method. This algorithm was initially proposed in the
     paper [DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://huggingface.co/papers/2402.03300).
@@ -241,7 +240,7 @@ class Qwen2VLGRPOTrainer(Trainer):
                     f"a `torch.dtype` (e.g., 'float32'), but got {torch_dtype}."
                 )
             model_init_kwargs["use_cache"] = True
-            model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model, **model_init_kwargs)
+            model = Qwen3VLForConditionalGeneration.from_pretrained(model, **model_init_kwargs)
         else:
             model_id = model.config._name_or_path
             if args.model_init_kwargs is not None:

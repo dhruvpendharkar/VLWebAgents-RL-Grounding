@@ -33,7 +33,7 @@ from torch.utils.data import Dataset
 from transformers import Qwen2VLForConditionalGeneration
 
 from math_verify import parse, verify
-from trainer import Qwen2VLGRPOTrainer, GRPOConfig
+from trainer import Qwen3VLGRPOTrainer, GRPOConfig
 from trl import ModelConfig, ScriptArguments, TrlParser, get_peft_config
 from transformers import TrainingArguments
 import yaml
@@ -42,7 +42,7 @@ import random
 import math
 from qwen_vl_utils import smart_resize
 from transformers import AutoProcessor
-from liger_kernel.transformers import apply_liger_kernel_to_qwen2_5_vl
+from liger_kernel.transformers import apply_liger_kernel_to_qwen3_vl
 
 @dataclass
 class GRPOScriptArguments(ScriptArguments):
@@ -213,9 +213,9 @@ def main(script_args, training_args, model_args):
     processing_class = AutoProcessor.from_pretrained(model_args.model_name_or_path,  max_pixels=script_args.max_pixels, min_pixels=script_args.min_pixels)
     # Load the dataset
     dataset = LazySupervisedDataset(script_args.dataset_name, script_args, processing_class)
-    trainer_cls = Qwen2VLGRPOTrainer
+    trainer_cls = Qwen3VLGRPOTrainer
 
-    apply_liger_kernel_to_qwen2_5_vl(fused_linear_cross_entropy=False)
+    apply_liger_kernel_to_qwen3_vl(fused_linear_cross_entropy=False)
 
     # Initialize the GRPO trainer
     trainer = trainer_cls(

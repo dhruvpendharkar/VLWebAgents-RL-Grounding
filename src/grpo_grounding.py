@@ -30,7 +30,7 @@ from typing import Optional
 
 from PIL import Image, ImageDraw, ImageFont
 from torch.utils.data import Dataset
-from transformers import Qwen2VLForConditionalGeneration
+from transformers import Qwen3VLForConditionalGeneration
 
 from math_verify import parse, verify
 from trainer import Qwen3VLGRPOTrainer, GRPOConfig
@@ -55,8 +55,8 @@ class GRPOScriptArguments(ScriptArguments):
     """
 
     reward_funcs: list[str] = field(
-        default_factory=lambda: ["accuracy", "format"],
-        metadata={"help": "List of reward functions. Possible values: 'accuracy', 'format'"},
+        default_factory=lambda: ["accuracy", "dense_accuracy", "format"],
+        metadata={"help": "List of reward functions. Possible values: 'accuracy', 'dense_accuracy', 'format'"},
     )
     max_pixels: Optional[int] = field(
         default=12845056,
@@ -187,6 +187,64 @@ def click_reward(completions, solution, **kwargs):
                 f.write(f"Solution: {sol}\n")
     return rewards
 
+def dense_click_reward(completions, solution, **kwargs):
+    def isin(x,y, sol):
+        boxs,ratio_h,ratio_w=sol[:3]
+        if not isinstance(boxs[0], list):
+            boxs = [boxs]
+        for box in boxs:
+            x0,y0,x1,y1 = box
+            x0 = int(x0*ratio_w)
+            y0 = int(y0*ratio_h)
+            x1 = int(x1*ratio_w)
+            y1 = int(y1*ratio_h)
+            if x<=x1 and x>=x0:
+                if y<=y1 and y>=y0:
+                    return True
+        return False
+    
+    def inverse_distance(x, y, true_x, true_y):
+        xs = (true_x - x) ** 2
+        ys = (true_y - y) ** 2
+        dist = math.sqrt(xs + ys)
+        return 1/dist
+
+    contents = [completion[0]["content"] for completion in completions]
+    rewards = []
+    for content, sol in zip(contents, solution):
+        reward = 0.0
+        try:
+            pred_x, pred_y = parse_coordinates(content)
+            if isin(pred_x,pred_y, sol):
+                reward = 1.0
+            else:
+                boxs, ratio_h, ratio_w = sol[:3]
+                if not isinstance(boxs[0], list):
+                    boxs = [boxs]
+                box = boxs[0]
+                x0, y0, x1, y1 = box
+                x0 = int(x0 * ratio_w)
+                x1 = int(x1 * ratio_w)
+                y0 = int(y0 * ratio_h)
+                y1 = int(y1 * ratio_h)
+                x_hat = (x0 + x1) / 2
+                y_hat = (y0 + y1) / 2
+                reward = inverse_distance(pred_x, pred_y, x_hat, y_hat)
+
+            
+        except Exception:
+            pass  # Continue to next verification method if this fails
+                
+        rewards.append(reward)
+        if os.getenv("DEBUG_MODE") == "true":
+            log_path = os.getenv("LOG_PATH")
+            # local_rank = int(os.getenv("LOCAL_RANK", 0))
+            with open(log_path, "a", encoding='utf-8') as f:
+                f.write(f"------------- {current_time} Accuracy reward: {reward} -------------\n")
+                f.write(f"Content: {content}\n")
+                f.write(f"Solution: {sol}\n")
+    return rewards
+
 def format_reward(completions, **kwargs):
     """Reward function that checks if the completion has a specific format."""
     pattern = r"<think>.*?</think>\s*<answer>\(\d+,\s*\d+\)</answer>"
@@ -197,6 +255,7 @@ def format_reward(completions, **kwargs):
 
 reward_funcs_registry = {
     "accuracy": click_reward,
+    "dense_accuracy": dense_click_reward,
     "format": format_reward,
 }
 

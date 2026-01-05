@@ -50,7 +50,7 @@ srun torchrun \
     --rdzv_endpoint "$RDZV_HOST:$RDZV_PORT"  src/grpo_grounding.py \
     --deepspeed local_scripts/zero3.json \
     --output_dir grounding/$RUN_NAME \
-    --model_name_or_path "Qwen/Qwen2.5-VL-3B-Instruct"  \
+    --model_name_or_path "Qwen/Qwen3-VL-4B-Instruct"  \
     --dataset_name preprocessing/inp.json \
     --image_root "./preprocessing" \
     --max_prompt_length 1024 \

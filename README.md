@@ -1,6 +1,8 @@
 ##TODO:
 
-Resolve job scheduling issues to ensure that this can be run on IBM cluster
+-Resolve job scheduling issues to ensure that this can be run on IBM cluster
+-Compare training with standard accuracy reward vs new dense accuracy reward
+-Add attention map based reward functions? (Kelvin)
 
 
 ## 🛠️ Setup
